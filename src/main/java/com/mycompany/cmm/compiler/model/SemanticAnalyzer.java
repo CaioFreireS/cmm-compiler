@@ -17,12 +17,15 @@ public class SemanticAnalyzer {
         this.symbolTable = new SymbolTable(null);
         this.semanticErrors.clear();
         this.currentFunctionReturnType = null;
+        this.functionNameToken = null;
         this.hasReturn = false;
     }
 
     public void analyze(List<Token> tokens) {
         this.symbolTable = new SymbolTable(null); 
         this.currentFunctionReturnType = null;
+        this.functionNameToken = null;
+        this.hasReturn = false;
         this.semanticErrors.clear();
 
         for (int i = 0; i < tokens.size(); i++) {
@@ -31,7 +34,16 @@ public class SemanticAnalyzer {
             if (isType(token.getType()) && i + 2 < tokens.size() && 
                 tokens.get(i + 1).getType() == TokenType.ID && 
                 tokens.get(i + 2).getType() == TokenType.LPAREN) {
-                currentFunctionReturnType = token.getType();
+                
+                validateFunctionExit(); 
+                
+                this.currentFunctionReturnType = token.getType();
+                this.functionNameToken = tokens.get(i + 1);
+                this.hasReturn = false; 
+            }
+
+            if (token.getType() == TokenType.RBRACE) {
+                 validateFunctionExit();
             }
 
             if (isType(token.getType()) && i + 1 < tokens.size() && 
@@ -39,11 +51,17 @@ public class SemanticAnalyzer {
                 (i + 2 >= tokens.size() || tokens.get(i + 2).getType() != TokenType.LPAREN)) {
 
                 Token varToken = tokens.get(i + 1);
-                symbolTable.add(varToken.getLexeme(), token.getType(), token.getLine());
+                
+                if (symbolTable.exists(varToken.getLexeme())) {
+                    reportError("Variável redeclarada", varToken);
+                } else {
+                    symbolTable.add(varToken.getLexeme(), token.getType(), token.getLine());
+                }
 
                 if (i + 3 < tokens.size() && tokens.get(i + 2).getType() == TokenType.ASSIGN) {
                     Token valueToken = tokens.get(i + 3);
-                    String error = checkAssignmentCompatibility(token.getType(), valueToken);
+                    String error;
+                    error = checkAssignmentCompatibility(token.getType(), valueToken);
                     if (error != null) {
                         reportError(error, valueToken);
                     }
@@ -53,9 +71,14 @@ public class SemanticAnalyzer {
     }
 
     public void validateFunctionExit() {
+        if (functionNameToken == null) {
+            return; 
+        }
+
         if (currentFunctionReturnType != null && currentFunctionReturnType != TokenType.VOID && !hasReturn) {
             reportError("A função '" + functionNameToken.getLexeme() + "' deve retornar um valor.", functionNameToken);
         }
+        
     }
 
     public String checkTypeCompatibility(Token returnToken) {
@@ -85,6 +108,9 @@ public class SemanticAnalyzer {
     }
 
     private void reportError(String message, Token t) {
+        for(String[] err : semanticErrors) {
+            if(err[0].equals(message) && err[1].equals(String.valueOf(t.getLine()))) return;
+        }
         semanticErrors.add(new String[]{message, String.valueOf(t.getLine()), t.getLexeme()});
     }
     
