@@ -126,11 +126,3 @@ int main() {
 4. **Auto-compilar**: Menu `Compilação` → `Auto-compilar` (análise em tempo real)
 
 Os erros léxicos aparecem sublinhados em vermelho com indicação de linha e coluna.
-
-## Gramática
-
-A gramática completa da linguagem C-- encontra-se em `STATUS_PROJETO.md`.
-
----
-
-**Última atualização**: Janeiro 2026
