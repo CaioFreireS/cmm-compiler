@@ -5,7 +5,6 @@
 package com.mycompany.cmm.compiler;
 
 import com.mycompany.cmm.compiler.view.CMMCompilerFrame;
-import com.mycompany.cmm.compiler.view.CompilerFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
@@ -16,19 +15,11 @@ import javax.swing.UIManager;
 public class CmmCompiler {
 
     public static void main(String[] args) {
-//        try {
-//            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-//        } catch (Exception ignored) {}
-//
-//        SwingUtilities.invokeLater(() -> {
-//            new CompilerFrame().setVisible(true);
-//        });
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {
         }
 
-        // Abre a sua nova tela desenhada no NetBeans
         SwingUtilities.invokeLater(() -> {
             new CMMCompilerFrame().setVisible(true);
         });
