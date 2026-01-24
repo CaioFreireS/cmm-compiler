@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.mycompany.cmm.compiler.view;
 
 import com.mycompany.cmm.compiler.lexer.Lexer;
@@ -19,7 +15,6 @@ import org.fife.ui.rsyntaxtextarea.parser.ParseResult;
 import org.fife.ui.rsyntaxtextarea.parser.ParserNotice;
 
 /**
- *
  * @author caiof
  */
 public class LexerParser extends AbstractParser {
@@ -57,12 +52,12 @@ public class LexerParser extends AbstractParser {
                 if (t.getType() == TokenType.ID) {
                     boolean isDeclaration = false;
                     if (i > 0) {
-                        TokenType prev = lastTokens.get(i - 1).getType(); 
-                        if (prev == TokenType.INT || prev == TokenType.VOID || 
-                            prev == TokenType.FLOAT || prev == TokenType.CHAR) {
+                        TokenType prevType = lastTokens.get(i - 1).getType();
+                        if (semanticAnalyzer.isType(prevType)) {
                             isDeclaration = true;
                         }
                     }
+                    
                     if (!isDeclaration && !semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
                         addNotice(result, doc, t, "Erro Semântico: Variável '" + t.getLexeme() + "' não declarada.");
                     }

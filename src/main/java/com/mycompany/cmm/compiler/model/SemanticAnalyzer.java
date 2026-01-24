@@ -21,7 +21,9 @@ public class SemanticAnalyzer {
     }
 
     public void analyze(List<Token> tokens) {
-        reset(); 
+        this.symbolTable = new SymbolTable(null); 
+        this.currentFunctionReturnType = null;
+        this.semanticErrors.clear();
 
         for (int i = 0; i < tokens.size(); i++) {
             Token token = tokens.get(i);
@@ -29,18 +31,24 @@ public class SemanticAnalyzer {
             if (isType(token.getType()) && i + 2 < tokens.size() && 
                 tokens.get(i + 1).getType() == TokenType.ID && 
                 tokens.get(i + 2).getType() == TokenType.LPAREN) {
-                
-                currentFunctionReturnType = token.getType(); 
-                functionNameToken = tokens.get(i + 1);
-                hasReturn = false;
+                currentFunctionReturnType = token.getType();
             }
 
             if (isType(token.getType()) && i + 1 < tokens.size() && 
                 tokens.get(i + 1).getType() == TokenType.ID &&
                 (i + 2 >= tokens.size() || tokens.get(i + 2).getType() != TokenType.LPAREN)) {
-                symbolTable.add(tokens.get(i + 1).getLexeme(), token.getType(), token.getLine());
+
+                Token varToken = tokens.get(i + 1);
+                symbolTable.add(varToken.getLexeme(), token.getType(), token.getLine());
+
+                if (i + 3 < tokens.size() && tokens.get(i + 2).getType() == TokenType.ASSIGN) {
+                    Token valueToken = tokens.get(i + 3);
+                    String error = checkAssignmentCompatibility(token.getType(), valueToken);
+                    if (error != null) {
+                        reportError(error, valueToken);
+                    }
+                }
             }
-            
         }
     }
 
@@ -79,8 +87,33 @@ public class SemanticAnalyzer {
     private void reportError(String message, Token t) {
         semanticErrors.add(new String[]{message, String.valueOf(t.getLine()), t.getLexeme()});
     }
+    
+    private String checkAssignmentCompatibility(TokenType varType, Token valueToken) {
+        TokenType valType = valueToken.getType();
 
-    private boolean isType(TokenType type) {
-        return type == TokenType.INT || type == TokenType.FLOAT || type == TokenType.CHAR || type == TokenType.VOID;
+        if (valType == TokenType.ID) {
+            SymbolInfo info = symbolTable.get(valueToken.getLexeme());
+            if (info == null) return "Variável '" + valueToken.getLexeme() + "' não declarada.";
+            valType = info.type;
+        }
+
+        boolean isCompatible = switch (varType) {
+            case INT, SHORT, LONG -> (valType == TokenType.INT || valType == TokenType.NUMBER_INT);
+            case FLOAT, DOUBLE -> (valType == TokenType.FLOAT || valType == TokenType.NUMBER_FLOAT || 
+                                   valType == TokenType.INT || valType == TokenType.NUMBER_INT);
+            case CHAR -> (valType == TokenType.CHAR || valType == TokenType.LITERAL);
+            default -> false;
+        };
+
+        if (!isCompatible) {
+            return "Erro de Atribuição: Não é possível atribuir " + valType + " a uma variável " + varType;
+        }
+        return null;
+    }
+
+    public boolean isType(TokenType type) {
+        return type == TokenType.INT || type == TokenType.FLOAT || type == TokenType.CHAR || 
+               type == TokenType.VOID || type == TokenType.DOUBLE || type == TokenType.LONG || 
+               type == TokenType.SHORT;
     }
 }
