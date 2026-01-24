@@ -8,6 +8,8 @@ package com.mycompany.cmm.compiler.lexer;
  *
  * @author caiof
  */
-public class LexicalError {
-    
+public class LexicalError extends RuntimeException {
+    public LexicalError(String message) {
+        super(message);
+    }
 }

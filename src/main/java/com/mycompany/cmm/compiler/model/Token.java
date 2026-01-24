@@ -6,6 +6,10 @@ package com.mycompany.cmm.compiler.model;
 
 import java.util.Objects;
 
+/**
+ *
+ * @author caiof
+ */
 public class Token {
     private final TokenType type;
     private final String lexeme;
