@@ -4,7 +4,7 @@
  */
 package com.mycompany.cmm.compiler.view;
 
-import com.mycompany.cmm.compiler.view.LexerParser; // Se der erro, verifique o pacote
+import com.mycompany.cmm.compiler.view.LexerParser;
 import com.mycompany.cmm.compiler.model.Token;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -22,6 +22,9 @@ import javax.swing.table.DefaultTableModel;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rtextarea.RTextScrollPane;
+import javax.swing.Timer;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 /**
  *
@@ -52,8 +55,6 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jToolBar1 = new javax.swing.JToolBar();
-        btnCompilar = new javax.swing.JButton();
         jSplitPane1 = new javax.swing.JSplitPane();
         pnlEditorContainer = new javax.swing.JPanel();
         jTabbedPane1 = new javax.swing.JTabbedPane();
@@ -64,15 +65,11 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
         mniAbrir = new javax.swing.JMenuItem();
         mniSalvar = new javax.swing.JMenuItem();
         mniSair = new javax.swing.JMenuItem();
+        mnuCompilar = new javax.swing.JMenu();
+        mniCompilarAgora = new javax.swing.JMenuItem();
+        mniAutoCompilar = new javax.swing.JCheckBoxMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        btnCompilar.setText("Compilar");
-        btnCompilar.setFocusable(false);
-        btnCompilar.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        btnCompilar.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        btnCompilar.addActionListener(this::btnCompilarActionPerformed);
-        jToolBar1.add(btnCompilar);
 
         jSplitPane1.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
 
@@ -127,13 +124,25 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
 
         jMenuBar1.add(jMenu1);
 
+        mnuCompilar.setText("Compile");
+
+        mniCompilarAgora.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_B, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        mniCompilarAgora.setText("Compilar");
+        mniCompilarAgora.addActionListener(this::mniCompilarAgoraActionPerformed);
+        mnuCompilar.add(mniCompilarAgora);
+
+        mniAutoCompilar.setSelected(true);
+        mniAutoCompilar.setText("Compilar Automatico");
+        mnuCompilar.add(mniAutoCompilar);
+
+        jMenuBar1.add(mnuCompilar);
+
         setJMenuBar(jMenuBar1);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jToolBar1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jSplitPane1)
@@ -142,9 +151,8 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jToolBar1, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 605, Short.MAX_VALUE)
+                .addContainerGap()
+                .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 631, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
@@ -155,10 +163,6 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
         acaoAbrir();
     }//GEN-LAST:event_mniAbrirActionPerformed
 
-    private void btnCompilarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCompilarActionPerformed
-        acaoCompilar();
-    }//GEN-LAST:event_btnCompilarActionPerformed
-
     private void mniSalvarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mniSalvarActionPerformed
         acaoSalvar();
     }//GEN-LAST:event_mniSalvarActionPerformed
@@ -166,6 +170,10 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     private void mniSairActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mniSairActionPerformed
         System.exit(0);
     }//GEN-LAST:event_mniSairActionPerformed
+
+    private void mniCompilarAgoraActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mniCompilarAgoraActionPerformed
+        acaoCompilar();
+    }//GEN-LAST:event_mniCompilarAgoraActionPerformed
 
     /**
      * @param args the command line arguments
@@ -193,59 +201,70 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnCompilar;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JToolBar jToolBar1;
     private javax.swing.JMenuItem mniAbrir;
+    private javax.swing.JCheckBoxMenuItem mniAutoCompilar;
+    private javax.swing.JMenuItem mniCompilarAgora;
     private javax.swing.JMenuItem mniSair;
     private javax.swing.JMenuItem mniSalvar;
+    private javax.swing.JMenu mnuCompilar;
     private javax.swing.JPanel pnlEditorContainer;
     private javax.swing.JTable tblTokens;
     // End of variables declaration//GEN-END:variables
 
-/**
+    /**
      * Inicializa o editor de código e configurações manuais
      */
     private void initCustomComponents() {
-        // Configurações da Janela
         this.setLocationRelativeTo(null);
         this.setTitle("IDE C-- Compiler - Sem Título");
 
-        // Criando o Editor de Código (RSyntaxTextArea)
         textArea = new RSyntaxTextArea(20, 60);
         textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_C);
         textArea.setCodeFoldingEnabled(true);
         textArea.setAntiAliasingEnabled(true);
         textArea.setFont(new java.awt.Font("Consolas", java.awt.Font.PLAIN, 14));
         
-        // Conectando o Lexer (Parser)
         lexerParser = new LexerParser();
         textArea.addParser(lexerParser);
 
-        // Adicionando Scroll e colocando dentro do painel que criamos no Design
         RTextScrollPane scrollPane = new RTextScrollPane(textArea);
         scrollPane.setFoldIndicatorEnabled(true);
         
-        // pnlEditorContainer é o nome do JPanel que você criou no passo 2
         pnlEditorContainer.setLayout(new BorderLayout());
         pnlEditorContainer.add(scrollPane, BorderLayout.CENTER);
         
-        // Configura a tabela para pintar erros de vermelho
         configurarRenderizacaoTabela();
+        
+        Timer timerCompilacao = new Timer(700, e -> atualizarTabelaTokens());
+        timerCompilacao.setRepeats(false);
+
+        textArea.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { verificarECompilar(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { verificarECompilar(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { verificarECompilar(); }
+
+            private void verificarECompilar() {
+                if (mniAutoCompilar.isSelected()) {
+                    timerCompilacao.restart();
+                }
+            }
+        });
     }
     
     private void configurarRenderizacaoTabela() {
-        // tblTokens é o nome da JTable que você criou no passo 2
         tblTokens.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 
-                // Pega o valor da coluna "Tipo" (índice 2)
                 Object tipoVal = table.getValueAt(row, 2);
                 String tipo = (tipoVal != null) ? tipoVal.toString() : "";
                 
@@ -261,33 +280,34 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     }
 
     private void atualizarTabelaTokens() {
-        textArea.forceReparsing(0);
-        List<Token> tokens = lexerParser.getLastTokens();
-        
-        DefaultTableModel model = (DefaultTableModel) tblTokens.getModel();
-        model.setRowCount(0); // Limpa tabela
-        
-        // Garante que as colunas existem (caso você não tenha criado no design)
-        if (model.getColumnCount() == 0) {
-            model.addColumn("Linha");
-            model.addColumn("Coluna");
-            model.addColumn("Tipo");
-            model.addColumn("Lexema");
-            model.addColumn("Valor");
-        }
-        
-        for (Token t : tokens) {
-            model.addRow(new Object[]{
-                t.getLine(),
-                t.getColumn(),
-                t.getType(),
-                t.getLexeme(),
-                t.getLiteral()
-            });
+        try {
+            textArea.forceReparsing(0);
+            List<Token> tokens = lexerParser.getLastTokens();
+
+            DefaultTableModel model = (DefaultTableModel) tblTokens.getModel();
+            model.setRowCount(0);
+
+            if (model.getColumnCount() == 0) {
+                model.addColumn("Linha");
+                model.addColumn("Coluna");
+                model.addColumn("Tipo");
+                model.addColumn("Lexema");
+                model.addColumn("Valor");
+            }
+
+            for (Token t : tokens) {
+                model.addRow(new Object[]{
+                    t.getLine(),
+                    t.getColumn(),
+                    t.getType(),
+                    t.getLexeme(),
+                    t.getLiteral()
+                });
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao atualizar tokens: " + e.getMessage());
         }
     }
-
-    // --- Métodos de Ação (Chame estes nos eventos dos botões) ---
 
     private void acaoCompilar() {
         atualizarTabelaTokens();
