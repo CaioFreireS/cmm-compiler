@@ -6,6 +6,9 @@ package com.mycompany.cmm.compiler.view;
 
 import com.mycompany.cmm.compiler.view.LexerParser;
 import com.mycompany.cmm.compiler.model.Token;
+import com.mycompany.cmm.compiler.model.SemanticAnalyzer;
+import com.mycompany.cmm.compiler.model.SymbolInfo;
+import com.mycompany.cmm.compiler.model.TokenType;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -34,6 +37,8 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(CMMCompilerFrame.class.getName());
 
+    private final SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer();
+    
     private RSyntaxTextArea textArea;
     private LexerParser lexerParser;
     private File arquivoAtual = null;
@@ -264,16 +269,25 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                
-                Object tipoVal = table.getValueAt(row, 2);
+
+                Object tipoVal = table.getValueAt(row, 2); // Coluna Tipo
                 String tipo = (tipoVal != null) ? tipoVal.toString() : "";
-                
+
+                // Pinta Vermelho se for Erro Léxico
                 if ("ERROR".equals(tipo)) {
                     c.setForeground(Color.RED);
                     c.setFont(c.getFont().deriveFont(java.awt.Font.BOLD));
                 } else {
                     c.setForeground(Color.BLACK);
                 }
+
+                // --- Alteração: Pinta Vermelho se for Erro Semântico (na coluna Valor) ---
+                Object valorVal = table.getValueAt(row, 4); // Coluna Valor
+                String valor = (valorVal != null) ? valorVal.toString() : "";
+                if (valor.startsWith("ERRO:")) {
+                    c.setForeground(Color.RED);
+                }
+
                 return c;
             }
         });
@@ -283,6 +297,8 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
         try {
             textArea.forceReparsing(0);
             List<Token> tokens = lexerParser.getLastTokens();
+
+            semanticAnalyzer.analyze(tokens);
 
             DefaultTableModel model = (DefaultTableModel) tblTokens.getModel();
             model.setRowCount(0);
@@ -295,17 +311,50 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
                 model.addColumn("Valor");
             }
 
-            for (Token t : tokens) {
+            for (int i = 0; i < tokens.size(); i++) {
+                Token t = tokens.get(i);
+                String valorColuna = "";
+
+                if (t.getType() == TokenType.ID) {
+                    boolean isDeclaration = false;
+                    if (i > 0) {
+                        TokenType prev = tokens.get(i - 1).getType();
+                        if (prev == TokenType.INT || prev == TokenType.VOID || 
+                            prev == TokenType.FLOAT || prev == TokenType.CHAR) {
+                            isDeclaration = true;
+                        }
+                    }
+
+                    if (!isDeclaration && !semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
+                        valorColuna = "ERRO: Não declarado"; 
+                    } 
+                    else if (semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
+                        SymbolInfo info = semanticAnalyzer.getSymbolTable().get(t.getLexeme());
+                        valorColuna = "Tipo: " + info.type;
+                    }
+                } 
+                else if (t.getType() == TokenType.RETURN && i + 1 < tokens.size()) {
+                    Token nextToken = tokens.get(i + 1);
+                    String typeError = semanticAnalyzer.checkTypeCompatibility(nextToken);
+                    if (typeError != null) {
+                        valorColuna = "ERRO: " + typeError;
+                    }
+                }
+                else if (t.getLiteral() != null) {
+                    valorColuna = t.getLiteral().toString();
+                }
+
                 model.addRow(new Object[]{
                     t.getLine(),
                     t.getColumn(),
                     t.getType(),
                     t.getLexeme(),
-                    t.getLiteral()
+                    valorColuna
                 });
             }
         } catch (Exception e) {
             System.out.println("Erro ao atualizar tokens: " + e.getMessage());
+            e.printStackTrace(); 
         }
     }
 
