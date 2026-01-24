@@ -4,7 +4,10 @@
  */
 package com.mycompany.cmm.compiler.view;
 
+import com.mycompany.cmm.compiler.model.SemanticAnalyzer;
+import com.mycompany.cmm.compiler.model.SymbolInfo;
 import com.mycompany.cmm.compiler.model.Token;
+import com.mycompany.cmm.compiler.model.TokenType;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rtextarea.RTextScrollPane;
@@ -23,6 +26,7 @@ public class CompilerFrame extends JFrame {
     private final LexerParser lexerParser;
     private final JTable tokenTable;
     private final DefaultTableModel tableModel;
+    private final SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(); 
 
     public CompilerFrame() {
         setTitle("IDE C-- Compiler");
@@ -62,19 +66,52 @@ public class CompilerFrame extends JFrame {
     }
 
     private void atualizarTabela() {
-        textArea.forceReparsing(0);
+        textArea.forceReparsing(lexerParser); 
 
         List<Token> tokens = lexerParser.getLastTokens();
+        
+        semanticAnalyzer.analyze(tokens); 
 
         tableModel.setRowCount(0);
 
-        for (Token t : tokens) {
+        for (int i = 0; i < tokens.size(); i++) {
+            Token t = tokens.get(i);
+            String valorColuna = "";
+
+            if (t.getType() == TokenType.ID) {
+                boolean isDeclaration = false;
+                if (i > 0) {
+                    TokenType prev = tokens.get(i - 1).getType();
+                    if (prev == TokenType.INT || prev == TokenType.VOID || 
+                        prev == TokenType.FLOAT || prev == TokenType.CHAR) {
+                        isDeclaration = true;
+                    }
+                }
+
+                if (!isDeclaration && !semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
+                    valorColuna = "ERRO: Não declarado"; //
+                } else if (semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
+                    SymbolInfo info = semanticAnalyzer.getSymbolTable().get(t.getLexeme());
+                    valorColuna = "Tipo: " + info.type;
+                }
+            } 
+            else if (t.getType() == TokenType.RETURN && i + 1 < tokens.size()) {
+                Token nextToken = tokens.get(i + 1);
+                String typeError = semanticAnalyzer.checkTypeCompatibility(nextToken);
+                if (typeError != null) {
+                    valorColuna = "ERRO: " + typeError; //
+                }
+            }
+            else if (t.getLiteral() != null) {
+                valorColuna = t.getLiteral().toString();
+            }
+
             tableModel.addRow(new Object[]{
                 t.getLine(),
                 t.getColumn(),
                 t.getType(),
                 t.getLexeme(),
-                t.getLiteral()
+                valorColuna
             });
         }
     }
