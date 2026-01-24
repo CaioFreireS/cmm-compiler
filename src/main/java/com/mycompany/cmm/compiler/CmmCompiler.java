@@ -4,6 +4,10 @@
 
 package com.mycompany.cmm.compiler;
 
+import com.mycompany.cmm.compiler.view.CompilerFrame;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+
 /**
  *
  * @author caiof
@@ -11,6 +15,12 @@ package com.mycompany.cmm.compiler;
 public class CmmCompiler {
 
     public static void main(String[] args) {
-        System.out.println("Hello World!");
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {}
+
+        SwingUtilities.invokeLater(() -> {
+            new CompilerFrame().setVisible(true);
+        });
     }
 }
