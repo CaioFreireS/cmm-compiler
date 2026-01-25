@@ -34,16 +34,9 @@ public class SemanticAnalyzer {
             if (isType(token.getType()) && i + 2 < tokens.size() && 
                 tokens.get(i + 1).getType() == TokenType.ID && 
                 tokens.get(i + 2).getType() == TokenType.LPAREN) {
-                
-                validateFunctionExit(); 
-                
                 this.currentFunctionReturnType = token.getType();
                 this.functionNameToken = tokens.get(i + 1);
                 this.hasReturn = false; 
-            }
-
-            if (token.getType() == TokenType.RBRACE) {
-                 validateFunctionExit();
             }
 
             if (isType(token.getType()) && i + 1 < tokens.size() && 
@@ -77,6 +70,41 @@ public class SemanticAnalyzer {
                 if (idxType == TokenType.NUMBER_INT || idxType == TokenType.NUMBER_FLOAT || idxType == TokenType.LITERAL) {
                     reportError("Erro de Contexto: índice de vetor não pode ser literal.", indexToken);
                 }
+            }
+
+            if ((token.getType() == TokenType.SIGNED || token.getType() == TokenType.UNSIGNED) &&
+                i + 2 < tokens.size() &&
+                (tokens.get(i + 1).getType() == TokenType.SHORT || tokens.get(i + 1).getType() == TokenType.INT || tokens.get(i + 1).getType() == TokenType.LONG) &&
+                tokens.get(i + 2).getType() == TokenType.ID &&
+                (i + 3 >= tokens.size() || tokens.get(i + 3).getType() != TokenType.LPAREN)) {
+
+                TokenType baseType = tokens.get(i + 1).getType();
+                Token varToken = tokens.get(i + 2);
+
+                if (symbolTable.exists(varToken.getLexeme())) {
+                    reportError("Variável redeclarada", varToken);
+                } else {
+                    symbolTable.add(varToken.getLexeme(), baseType, varToken.getLine());
+                }
+
+                if (i + 4 < tokens.size() && tokens.get(i + 3).getType() == TokenType.ASSIGN) {
+                    Token valueToken = tokens.get(i + 4);
+                    String error = checkAssignmentCompatibility(baseType, valueToken);
+                    if (error != null) {
+                        reportError(error, valueToken);
+                    }
+                }
+            }
+
+            if ((token.getType() == TokenType.SIGNED || token.getType() == TokenType.UNSIGNED) &&
+                i + 3 < tokens.size() &&
+                (tokens.get(i + 1).getType() == TokenType.SHORT || tokens.get(i + 1).getType() == TokenType.INT || tokens.get(i + 1).getType() == TokenType.LONG) &&
+                tokens.get(i + 2).getType() == TokenType.ID &&
+                tokens.get(i + 3).getType() == TokenType.LPAREN) {
+
+                this.currentFunctionReturnType = tokens.get(i + 1).getType();
+                this.functionNameToken = tokens.get(i + 2);
+                this.hasReturn = false;
             }
         }
     }

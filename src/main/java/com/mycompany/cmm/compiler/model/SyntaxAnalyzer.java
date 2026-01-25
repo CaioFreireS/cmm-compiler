@@ -75,6 +75,40 @@ public class SyntaxAnalyzer {
             return;
         }
 
+        if (match(TokenType.SIGNED, TokenType.UNSIGNED)) {
+            if (check(TokenType.SHORT) || check(TokenType.INT) || check(TokenType.LONG)) {
+                advance();
+                Token identifier = consume(TokenType.ID, "Esperado identificador.");
+                if (match(TokenType.LPAREN)) {
+                    parseParameters();
+                    consume(TokenType.RPAREN, "Esperado ')' apos parametros de funcao.");
+                    parseBlock();
+                } else {
+                    parseVariableTail();
+                    consume(TokenType.SEMICOLON, "Esperado ';' ao final da declaracao.");
+                }
+                return;
+            } else {
+                issues.add(new SyntaxIssue("Esperado tipo inteiro apos signed/unsigned.", peek(), false));
+            }
+        }
+
+        if (match(TokenType.HASHTAG)) {
+            if (check(TokenType.ID) && peek().getLexeme().equals("define")) {
+                advance();
+                consume(TokenType.ID, "Esperado identificador apos define.");
+                if (check(TokenType.NUMBER_INT) || check(TokenType.NUMBER_FLOAT)) {
+                    advance();
+                } else {
+                    issues.add(new SyntaxIssue("Esperado numero apos identificador em define.", peek(), false));
+                }
+                return;
+            } else {
+                issues.add(new SyntaxIssue("Diretiva desconhecida apos '#'.", peek(), false));
+                return;
+            }
+        }
+
         statement();
     }
 
@@ -94,12 +128,40 @@ public class SyntaxAnalyzer {
         if (check(TokenType.RPAREN)) return;
 
         do {
-            if (!isType(peek().getType())) {
+            // tipo simples
+            if (isType(peek().getType())) {
+                advance();
+                Token id = consume(TokenType.ID, "Esperado nome do parametro.");
+                if (match(TokenType.LBRACKET)) {
+                    if (check(TokenType.NUMBER_INT) || check(TokenType.NUMBER_FLOAT)) {
+                        advance();
+                    } else {
+                        issues.add(new SyntaxIssue("Esperado tamanho NUM no parametro vetor.", peek(), false));
+                    }
+                    consume(TokenType.RBRACKET, "Esperado ']' apos tamanho do parametro vetor.");
+                }
+            }
+            // tipo composto signed/unsigned + inteiro
+            else if (match(TokenType.SIGNED, TokenType.UNSIGNED)) {
+                if (check(TokenType.SHORT) || check(TokenType.INT) || check(TokenType.LONG)) {
+                    advance();
+                    Token id = consume(TokenType.ID, "Esperado nome do parametro.");
+                    if (match(TokenType.LBRACKET)) {
+                        if (check(TokenType.NUMBER_INT) || check(TokenType.NUMBER_FLOAT)) {
+                            advance();
+                        } else {
+                            issues.add(new SyntaxIssue("Esperado tamanho NUM no parametro vetor.", peek(), false));
+                        }
+                        consume(TokenType.RBRACKET, "Esperado ']' apos tamanho do parametro vetor.");
+                    }
+                } else {
+                    issues.add(new SyntaxIssue("Esperado tipo inteiro apos signed/unsigned no parametro.", peek(), false));
+                    break;
+                }
+            } else {
                 issues.add(new SyntaxIssue("Esperado tipo de parametro.", peek(), false));
                 break;
             }
-            advance();
-            consume(TokenType.ID, "Esperado nome do parametro.");
         } while (match(TokenType.COMMA));
     }
 
@@ -177,6 +239,24 @@ public class SyntaxAnalyzer {
 
         if (match(TokenType.BREAK)) {
             consume(TokenType.SEMICOLON, "Esperado ';' apos 'break'.");
+            return;
+        }
+
+        if (match(TokenType.PRINTF)) {
+            consume(TokenType.LPAREN, "Esperado '(' apos 'printf'.");
+            if (!check(TokenType.RPAREN)) {
+                expression();
+            }
+            consume(TokenType.RPAREN, "Esperado ')' apos argumentos de 'printf'.");
+            consume(TokenType.SEMICOLON, "Esperado ';' apos 'printf'.");
+            return;
+        }
+
+        if (match(TokenType.SCANF)) {
+            consume(TokenType.LPAREN, "Esperado '(' apos 'scanf'.");
+            consume(TokenType.ID, "Esperado identificador em 'scanf'.");
+            consume(TokenType.RPAREN, "Esperado ')' apos argumentos de 'scanf'.");
+            consume(TokenType.SEMICOLON, "Esperado ';' apos 'scanf'.");
             return;
         }
 
