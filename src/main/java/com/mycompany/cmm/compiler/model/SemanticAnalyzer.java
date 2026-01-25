@@ -67,6 +67,17 @@ public class SemanticAnalyzer {
                     }
                 }
             }
+
+            if (token.getType() == TokenType.ID && i + 3 < tokens.size() &&
+                tokens.get(i + 1).getType() == TokenType.LBRACKET &&
+                tokens.get(i + 3).getType() == TokenType.RBRACKET) {
+
+                Token indexToken = tokens.get(i + 2);
+                TokenType idxType = indexToken.getType();
+                if (idxType == TokenType.NUMBER_INT || idxType == TokenType.NUMBER_FLOAT || idxType == TokenType.LITERAL) {
+                    reportError("Erro de Contexto: índice de vetor não pode ser literal.", indexToken);
+                }
+            }
         }
     }
 

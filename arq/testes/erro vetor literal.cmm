@@ -1,0 +1,6 @@
+int main() {
+    x;
+    int v[3];
+    int y = v[0];
+    return 0;
+}

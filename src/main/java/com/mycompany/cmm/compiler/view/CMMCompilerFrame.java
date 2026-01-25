@@ -67,6 +67,7 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
         tblTokens = new javax.swing.JTable();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
+        mniNovo = new javax.swing.JMenuItem();
         mniAbrir = new javax.swing.JMenuItem();
         mniSalvar = new javax.swing.JMenuItem();
         mniSair = new javax.swing.JMenuItem();
@@ -115,14 +116,22 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
 
         jMenu1.setText("File");
 
+        mniNovo.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        mniNovo.setText("Novo");
+        mniNovo.addActionListener(this::mniNovoActionPerformed);
+        jMenu1.add(mniNovo);
+
+        mniAbrir.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.CTRL_DOWN_MASK));
         mniAbrir.setText("Abrir");
         mniAbrir.addActionListener(this::mniAbrirActionPerformed);
         jMenu1.add(mniAbrir);
 
+        mniSalvar.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_DOWN_MASK));
         mniSalvar.setText("Salvar");
         mniSalvar.addActionListener(this::mniSalvarActionPerformed);
         jMenu1.add(mniSalvar);
 
+        mniSair.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_X, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
         mniSair.setText("Sair");
         mniSair.addActionListener(this::mniSairActionPerformed);
         jMenu1.add(mniSair);
@@ -136,6 +145,7 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
         mniCompilarAgora.addActionListener(this::mniCompilarAgoraActionPerformed);
         mnuCompilar.add(mniCompilarAgora);
 
+        mniAutoCompilar.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_B, java.awt.event.InputEvent.ALT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
         mniAutoCompilar.setSelected(true);
         mniAutoCompilar.setText("Compilar Automatico");
         mnuCompilar.add(mniAutoCompilar);
@@ -180,6 +190,10 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
         acaoCompilar();
     }//GEN-LAST:event_mniCompilarAgoraActionPerformed
 
+    private void mniNovoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mniNovoActionPerformed
+        acaoNovo();
+    }//GEN-LAST:event_mniNovoActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -214,6 +228,7 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     private javax.swing.JMenuItem mniAbrir;
     private javax.swing.JCheckBoxMenuItem mniAutoCompilar;
     private javax.swing.JMenuItem mniCompilarAgora;
+    private javax.swing.JMenuItem mniNovo;
     private javax.swing.JMenuItem mniSair;
     private javax.swing.JMenuItem mniSalvar;
     private javax.swing.JMenu mnuCompilar;
@@ -408,4 +423,23 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "Erro ao salvar: " + ex.getMessage());
         }
     }
+            
+    private void acaoNovo() {
+        if (textArea.getText().length() > 0) {
+            int response = JOptionPane.showConfirmDialog(this, 
+                "Deseja salvar o arquivo atual antes de criar um novo?", 
+                "Novo Arquivo", 
+                JOptionPane.YES_NO_CANCEL_OPTION);
+            
+            if (response == JOptionPane.CANCEL_OPTION) return;
+            if (response == JOptionPane.YES_OPTION) acaoSalvar();
+        }
+
+        textArea.setText("");
+        arquivoAtual = null;
+        setTitle("IDE C-- Compiler - Sem Título");
+        
+        DefaultTableModel model = (DefaultTableModel) tblTokens.getModel();
+        model.setRowCount(0);
+    }       
 }
