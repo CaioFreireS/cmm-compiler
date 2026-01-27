@@ -6,8 +6,6 @@ package com.mycompany.cmm.compiler.view;
 
 import com.mycompany.cmm.compiler.view.LexerParser;
 import com.mycompany.cmm.compiler.model.Token;
-import com.mycompany.cmm.compiler.model.SemanticAnalyzer;
-import com.mycompany.cmm.compiler.model.SymbolInfo;
 import com.mycompany.cmm.compiler.model.TokenType;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -36,8 +34,6 @@ import javax.swing.event.DocumentListener;
 public class CMMCompilerFrame extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(CMMCompilerFrame.class.getName());
-
-    private final SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer();
     
     private RSyntaxTextArea textArea;
     private LexerParser lexerParser;
@@ -313,8 +309,6 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
             textArea.forceReparsing(0);
             List<Token> tokens = lexerParser.getLastTokens();
 
-            semanticAnalyzer.analyze(tokens);
-
             DefaultTableModel model = (DefaultTableModel) tblTokens.getModel();
             model.setRowCount(0);
 
@@ -323,40 +317,13 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
                 model.addColumn("Coluna");
                 model.addColumn("Tipo");
                 model.addColumn("Lexema");
-                model.addColumn("Valor");
+                model.addColumn("Literal");
             }
 
-            for (int i = 0; i < tokens.size(); i++) {
-                Token t = tokens.get(i);
-                String valorColuna = "";
-
-                if (t.getType() == TokenType.ID) {
-                    boolean isDeclaration = false;
-                    if (i > 0) {
-                        TokenType prev = tokens.get(i - 1).getType();
-                        if (prev == TokenType.INT || prev == TokenType.VOID || 
-                            prev == TokenType.FLOAT || prev == TokenType.CHAR) {
-                            isDeclaration = true;
-                        }
-                    }
-
-                    if (!isDeclaration && !semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
-                        valorColuna = "ERRO: Não declarado"; 
-                    } 
-                    else if (semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
-                        SymbolInfo info = semanticAnalyzer.getSymbolTable().get(t.getLexeme());
-                        valorColuna = "Tipo: " + info.type;
-                    }
-                } 
-                else if (t.getType() == TokenType.RETURN && i + 1 < tokens.size()) {
-                    Token nextToken = tokens.get(i + 1);
-                    String typeError = semanticAnalyzer.checkTypeCompatibility(nextToken);
-                    if (typeError != null) {
-                        valorColuna = "ERRO: " + typeError;
-                    }
-                }
-                else if (t.getLiteral() != null) {
-                    valorColuna = t.getLiteral().toString();
+            for (Token t : tokens) {
+                String literal = "";
+                if (t.getLiteral() != null) {
+                    literal = t.getLiteral().toString();
                 }
 
                 model.addRow(new Object[]{
@@ -364,7 +331,7 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
                     t.getColumn(),
                     t.getType(),
                     t.getLexeme(),
-                    valorColuna
+                    literal
                 });
             }
         } catch (Exception e) {

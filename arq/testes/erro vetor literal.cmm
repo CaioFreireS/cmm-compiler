@@ -1,6 +1,7 @@
-int main() {
-    x;
-    int v[3];
-    int y = v[0];
-    return 0;
+int main() 
+{
+	char["es"] us = "ES";
+	char[2] us2 = "ES";
+	
+	return 0;
 }
