@@ -81,7 +81,6 @@ public class SyntaxAnalyzer {
             consume(TokenType.SEMICOLON, "Esperado ';' ao final da declaracao.");
             return;
         }
-
         if (isType(peek().getType()) && lookAheadType(1) == TokenType.ID) {
             Token typeToken = advance();
             Token identifier = consume(TokenType.ID, "Esperado identificador.");
@@ -97,23 +96,9 @@ public class SyntaxAnalyzer {
             return;
         }
 
-        if (isType(peek().getType()) && lookAheadType(1) == TokenType.LBRACKET) {
-            advance();
-            checkMisplacedVectorIndex();
-            issues.add(new SyntaxIssue("Esperado identificador apos tipo.", peek(), false));
-            synchronizeToDeclarationEnd();
-            return;
-        }
-
         if (match(TokenType.SIGNED, TokenType.UNSIGNED)) {
             if (check(TokenType.SHORT) || check(TokenType.INT) || check(TokenType.LONG)) {
                 advance();
-                if (check(TokenType.LBRACKET)) {
-                    checkMisplacedVectorIndex();
-                    issues.add(new SyntaxIssue("Esperado identificador apos tipo.", peek(), false));
-                    synchronizeToDeclarationEnd();
-                    return;
-                }
                 Token identifier = consume(TokenType.ID, "Esperado identificador.");
                 if (match(TokenType.LPAREN)) {
                     parseParameters();
@@ -150,14 +135,7 @@ public class SyntaxAnalyzer {
 
     private void parseVariableTail() {
         if (match(TokenType.LBRACKET)) {
-            if (check(TokenType.NUMBER_INT) || check(TokenType.NUMBER_FLOAT)) {
-                advance();
-            } else {
-                issues.add(new SyntaxIssue("Esperado NUM no indice do vetor.", peek(), false));
-                if (!check(TokenType.RBRACKET) && !isAtEnd()) {
-                    advance();
-                }
-            }
+            expression();
             consume(TokenType.RBRACKET, "Esperado ']' apos declaracao de vetor.");
         }
 
@@ -439,34 +417,6 @@ public class SyntaxAnalyzer {
         return false;
     }
 
-    private void checkMisplacedVectorIndex() {
-        if (!match(TokenType.LBRACKET)) {
-            return;
-        }
-
-        if (check(TokenType.LITERAL)) {
-            issues.add(new SyntaxIssue("Erro de Contexto: indice de vetor nao pode ser literal.", peek(), false));
-            advance();
-        } else if (check(TokenType.NUMBER_INT) || check(TokenType.NUMBER_FLOAT)) {
-            advance();
-        } else if (!check(TokenType.RBRACKET) && !isAtEnd()) {
-            advance();
-        }
-
-        if (check(TokenType.RBRACKET)) {
-            advance();
-        }
-    }
-
-    private void synchronizeToDeclarationEnd() {
-        while (!isAtEnd() && !check(TokenType.SEMICOLON) && !check(TokenType.RBRACE)) {
-            advance();
-        }
-        if (check(TokenType.SEMICOLON)) {
-            advance();
-        }
-    }
-
     private Token consume(TokenType type, String message) {
         if (check(type)) return advance();
         issues.add(new SyntaxIssue(message, peek(), false));
@@ -523,8 +473,8 @@ public class SyntaxAnalyzer {
         }
 
         static ExpressionInfo fromLiteral(Token token) {
-              boolean isStringLiteral = token.getType() == TokenType.LITERAL;
-              return new ExpressionInfo(token, false, isStringLiteral, false, false);
+            boolean isStringLiteral = token.getType() == TokenType.LITERAL;
+            return new ExpressionInfo(token, false, isStringLiteral, false, false);
         }
 
         static ExpressionInfo fromUnary(Token op, ExpressionInfo right) {
