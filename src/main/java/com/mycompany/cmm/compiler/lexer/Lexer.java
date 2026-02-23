@@ -51,7 +51,19 @@ public class Lexer {
     }
 
     public Lexer(String input) {
-        this.input = input;
+        this.input = normalizeSpaces(input);
+    }
+
+    private String normalizeSpaces(String input) {
+        StringBuilder sb = new StringBuilder();
+        String[] lines = input.split("\\r?\\n");
+        for (String line : lines) {
+            String normalized = line.trim().replaceAll(" +", " ");
+            if (!normalized.isEmpty()) {
+                sb.append(normalized).append("\n");
+            }
+        }
+        return sb.toString();
     }
 
     public Token scan() {
