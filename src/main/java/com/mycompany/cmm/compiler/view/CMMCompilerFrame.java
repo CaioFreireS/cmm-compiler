@@ -4,6 +4,8 @@
  */
 package com.mycompany.cmm.compiler.view;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.mycompany.cmm.compiler.view.LexerParser;
 import com.mycompany.cmm.compiler.model.Token;
 import com.mycompany.cmm.compiler.model.SemanticAnalyzer;
@@ -65,6 +67,8 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jScrollPane1 = new javax.swing.JScrollPane();
         tblTokens = new javax.swing.JTable();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        txtOutput = new javax.swing.JTextArea();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         mniNovo = new javax.swing.JMenuItem();
@@ -111,6 +115,13 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
         jScrollPane1.setViewportView(tblTokens);
 
         jTabbedPane1.addTab("Tokens", jScrollPane1);
+
+        txtOutput.setEditable(false);
+        txtOutput.setColumns(20);
+        txtOutput.setRows(5);
+        jScrollPane2.setViewportView(txtOutput);
+
+        jTabbedPane1.addTab("Output", jScrollPane2);
 
         jSplitPane1.setRightComponent(jTabbedPane1);
 
@@ -223,6 +234,7 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JMenuItem mniAbrir;
@@ -234,6 +246,7 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     private javax.swing.JMenu mnuCompilar;
     private javax.swing.JPanel pnlEditorContainer;
     private javax.swing.JTable tblTokens;
+    private javax.swing.JTextArea txtOutput;
     // End of variables declaration//GEN-END:variables
 
     /**
@@ -285,10 +298,9 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-                Object tipoVal = table.getValueAt(row, 2); // Coluna Tipo
+                Object tipoVal = table.getValueAt(row, 2);
                 String tipo = (tipoVal != null) ? tipoVal.toString() : "";
 
-                // Pinta Vermelho se for Erro Léxico
                 if ("ERROR".equals(tipo)) {
                     c.setForeground(Color.RED);
                     c.setFont(c.getFont().deriveFont(java.awt.Font.BOLD));
@@ -296,8 +308,7 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
                     c.setForeground(Color.BLACK);
                 }
 
-                // --- Alteração: Pinta Vermelho se for Erro Semântico (na coluna Valor) ---
-                Object valorVal = table.getValueAt(row, 4); // Coluna Valor
+                Object valorVal = table.getValueAt(row, 4);
                 String valor = (valorVal != null) ? valorVal.toString() : "";
                 if (valor.startsWith("ERRO:")) {
                     c.setForeground(Color.RED);
@@ -326,9 +337,27 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
                 model.addColumn("Valor");
             }
 
+            StringBuilder outputMsg = new StringBuilder();
+            int errorCount = 0;
+
+            List<String[]> semanticErrs = semanticAnalyzer.getSemanticErrors();
+            if (semanticErrs != null) {
+                for (String[] err : semanticErrs) {
+                    outputMsg.append("Erro Semântico [Linha ").append(err[1])
+                             .append("]: ").append(err[0]).append("\n");
+                    errorCount++;
+                }
+            }
+
             for (int i = 0; i < tokens.size(); i++) {
                 Token t = tokens.get(i);
                 String valorColuna = "";
+                
+                if (t.getType() == TokenType.ERROR) {
+                    outputMsg.append("Erro Léxico [Linha ").append(t.getLine())
+                             .append("]: Token/Caractere inválido '").append(t.getLexeme()).append("'\n");
+                    errorCount++;
+                }
 
                 if (t.getType() == TokenType.ID) {
                     boolean isDeclaration = false;
@@ -342,6 +371,9 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
 
                     if (!isDeclaration && !semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
                         valorColuna = "ERRO: Não declarado"; 
+                        outputMsg.append("Erro Semântico [Linha ").append(t.getLine())
+                                 .append("]: Variável '").append(t.getLexeme()).append("' não declarada.\n");
+                        errorCount++;
                     } 
                     else if (semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
                         SymbolInfo info = semanticAnalyzer.getSymbolTable().get(t.getLexeme());
@@ -367,6 +399,16 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
                     valorColuna
                 });
             }
+            
+            if (errorCount == 0) {
+                txtOutput.setForeground(new Color(0, 150, 0));
+                txtOutput.setText("Compilação concluída com sucesso.\nNenhum erro encontrado.");
+            } else {
+                txtOutput.setForeground(Color.RED);
+                txtOutput.setText(String.format("Falha na compilação. %d erro(s) encontrado(s):\n\n", errorCount));
+                txtOutput.append(outputMsg.toString());
+            }
+
         } catch (Exception e) {
             System.out.println("Erro ao atualizar tokens: " + e.getMessage());
             e.printStackTrace(); 
@@ -374,7 +416,58 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     }
 
     private void acaoCompilar() {
+        String original = textArea.getText();
+        int caret = textArea.getCaretPosition();
+        String cleaned = normalizeWhitespace(original);
+        if (!cleaned.equals(original)) {
+            textArea.setText(cleaned);
+            textArea.setCaretPosition(Math.min(caret, cleaned.length()));
+        }
+
         atualizarTabelaTokens();
+    }
+
+    private String normalizeWhitespace(String code) {
+        String s = code.replaceAll("\\s+", " ").trim();
+
+        s = s.replace("{", " { ").replace("}", " } ").replace(";", " ; ");
+        s = s.replaceAll(" {2,}", " ").trim();
+
+        java.util.List<String> tokens = new java.util.ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        for (String part : s.split(" ")) {
+            if (part.isEmpty()) continue;
+            if (cur.length() > 0) cur.append(' ');
+            cur.append(part);
+            if (part.equals("{") || part.equals("}") || part.equals(";")) {
+                tokens.add(cur.toString().trim());
+                cur.setLength(0);
+            }
+        }
+        if (cur.length() > 0) tokens.add(cur.toString().trim());
+
+        StringBuilder out = new StringBuilder();
+        int indent = 0;
+        for (String tok : tokens) {
+            String t = tok.trim();
+            if (t.equals("}")) {
+                indent = Math.max(0, indent - 1);
+                out.append("  ".repeat(indent)).append("}").append("\n");
+            } else if (t.endsWith("{")) {
+                String header = t.substring(0, t.length() - 1).trim();
+                if (!header.isEmpty()) {
+                    out.append("  ".repeat(indent)).append(header).append(" {").append("\n");
+                } else {
+                    out.append("  ".repeat(indent)).append("{").append("\n");
+                }
+                indent++;
+            } else {
+                out.append("  ".repeat(indent)).append(t).append("\n");
+            }
+        }
+
+        if (!out.toString().endsWith("\n")) out.append("\n");
+        return out.toString();
     }
 
     private void acaoAbrir() {

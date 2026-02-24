@@ -8,6 +8,9 @@ public class SemanticAnalyzer {
     private TokenType currentFunctionReturnType = null;
     private boolean hasReturn = false;
     private Token functionNameToken = null;
+    private boolean pendingFunction = false;
+    private boolean inFunction = false;
+    private int braceDepth = 0;
     private List<String[]> semanticErrors = new ArrayList<>();
 
     public SymbolTable getSymbolTable() { return this.symbolTable; }
@@ -19,6 +22,9 @@ public class SemanticAnalyzer {
         this.currentFunctionReturnType = null;
         this.functionNameToken = null;
         this.hasReturn = false;
+        this.pendingFunction = false;
+        this.inFunction = false;
+        this.braceDepth = 0;
     }
 
     public void analyze(List<Token> tokens) {
@@ -26,6 +32,9 @@ public class SemanticAnalyzer {
         this.currentFunctionReturnType = null;
         this.functionNameToken = null;
         this.hasReturn = false;
+        this.pendingFunction = false;
+        this.inFunction = false;
+        this.braceDepth = 0;
         this.semanticErrors.clear();
 
         for (int i = 0; i < tokens.size(); i++) {
@@ -37,6 +46,7 @@ public class SemanticAnalyzer {
                 this.currentFunctionReturnType = token.getType();
                 this.functionNameToken = tokens.get(i + 1);
                 this.hasReturn = false; 
+                this.pendingFunction = true;
             }
 
             if (isType(token.getType()) && i + 1 < tokens.size() && 
@@ -105,6 +115,32 @@ public class SemanticAnalyzer {
                 this.currentFunctionReturnType = tokens.get(i + 1).getType();
                 this.functionNameToken = tokens.get(i + 2);
                 this.hasReturn = false;
+                this.pendingFunction = true;
+            }
+        }
+
+        for (int i = 0; i < tokens.size(); i++) {
+            Token token = tokens.get(i);
+            if (token.getType() == TokenType.LBRACE) {
+                if (pendingFunction) {
+                    inFunction = true;
+                    braceDepth = 1;
+                    pendingFunction = false;
+                } else if (inFunction) {
+                    braceDepth++;
+                }
+            } else if (token.getType() == TokenType.RBRACE) {
+                if (inFunction) {
+                    braceDepth--;
+                    if (braceDepth <= 0) {
+                        validateFunctionExit();
+                        currentFunctionReturnType = null;
+                        functionNameToken = null;
+                        hasReturn = false;
+                        inFunction = false;
+                        braceDepth = 0;
+                    }
+                }
             }
         }
     }

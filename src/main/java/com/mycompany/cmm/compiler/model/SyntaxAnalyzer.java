@@ -57,8 +57,26 @@ public class SyntaxAnalyzer {
         return issues;
     }
 
+    private void synchronize() {
+        if (isAtEnd()) return;
+        advance();
+        while (!isAtEnd()) {
+            TokenType t = peek().getType();
+            if (t == TokenType.SEMICOLON || t == TokenType.RBRACE) {
+                return;
+            }
+            advance();
+        }
+    }
+
     private void declaration() {
         if (isAtEnd()) return;
+
+        if (check(TokenType.RBRACE)) {
+            Token t = advance();
+            issues.add(new SyntaxIssue("'}' inesperada.", t, false));
+            return;
+        }
 
         if (isType(peek().getType()) && lookAheadType(1) == TokenType.LBRACKET) {
             advance();
@@ -111,6 +129,7 @@ public class SyntaxAnalyzer {
                 return;
             } else {
                 issues.add(new SyntaxIssue("Esperado tipo inteiro apos signed/unsigned.", peek(), false));
+                    synchronize();
             }
         }
 
@@ -149,7 +168,6 @@ public class SyntaxAnalyzer {
         if (check(TokenType.RPAREN)) return;
 
         do {
-            // tipo simples
             if (isType(peek().getType())) {
                 advance();
                 Token id = consume(TokenType.ID, "Esperado nome do parametro.");
@@ -162,7 +180,6 @@ public class SyntaxAnalyzer {
                     consume(TokenType.RBRACKET, "Esperado ']' apos tamanho do parametro vetor.");
                 }
             }
-            // tipo composto signed/unsigned + inteiro
             else if (match(TokenType.SIGNED, TokenType.UNSIGNED)) {
                 if (check(TokenType.SHORT) || check(TokenType.INT) || check(TokenType.LONG)) {
                     advance();
@@ -199,6 +216,12 @@ public class SyntaxAnalyzer {
     }
 
     private void statement() {
+        if (check(TokenType.RBRACE)) {
+            Token t = advance();
+            issues.add(new SyntaxIssue("'}' inesperada.", t, false));
+            return;
+        }
+
         if (match(TokenType.LBRACE)) {
             current--;
             parseBlock();
@@ -420,6 +443,8 @@ public class SyntaxAnalyzer {
     private Token consume(TokenType type, String message) {
         if (check(type)) return advance();
         issues.add(new SyntaxIssue(message, peek(), false));
+        synchronize();
+        if (check(type)) return advance();
         if (!isAtEnd()) return advance();
         return new Token(type, "", peek().getLine(), peek().getColumn());
     }
