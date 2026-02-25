@@ -12,10 +12,16 @@ public class SymbolInfo {
     public String name;
     public TokenType type;
     public int line;
+    public Object value;
 
     public SymbolInfo(String name, TokenType type, int line) {
+        this(name, type, line, null);
+    }
+
+    public SymbolInfo(String name, TokenType type, int line, Object value) {
         this.name = name;
         this.type = type;
         this.line = line;
+        this.value = value;
     }
 }

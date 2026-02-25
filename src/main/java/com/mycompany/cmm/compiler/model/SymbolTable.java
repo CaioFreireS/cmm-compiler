@@ -15,12 +15,26 @@ public class SymbolTable {
         this.parent = parent;
     }
 
+    public SymbolTable getParent() {
+        return this.parent;
+    }
+
+    public boolean containsLocal(String name) {
+        return symbols.containsKey(name);
+    }
+
     public void add(String name, TokenType type, int line) {
         if (symbols.containsKey(name)) {
-            System.err.println("Erro Semântico: Variável '" + name + "' já declarada na linha " + line);
             return;
         }
         symbols.put(name, new SymbolInfo(name, type, line));
+    }
+
+    public void add(String name, TokenType type, int line, Object value) {
+        if (symbols.containsKey(name)) {
+            return;
+        }
+        symbols.put(name, new SymbolInfo(name, type, line, value));
     }
 
     public SymbolInfo get(String name) {

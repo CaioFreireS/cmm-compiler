@@ -65,7 +65,11 @@ public class LexerParser extends AbstractParser {
                             isDeclaration = true;
                         }
                     }
-                    
+                    // Skip identifiers that are part of a preprocessor directive (# define)
+                    if (i > 0 && lastTokens.get(i - 1).getType() == TokenType.HASHTAG) {
+                        continue;
+                    }
+
                     if (!isDeclaration && !semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
                         addNotice(result, doc, t, "Erro Semântico: Variável '" + t.getLexeme() + "' não declarada.", ParserNotice.Level.ERROR);
                     }

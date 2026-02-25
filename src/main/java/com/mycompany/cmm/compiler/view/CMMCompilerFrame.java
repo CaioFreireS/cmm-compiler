@@ -338,6 +338,7 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
             }
 
             StringBuilder outputMsg = new StringBuilder();
+            StringBuilder runtimeOut = new StringBuilder();
             int errorCount = 0;
 
             List<String[]> semanticErrs = semanticAnalyzer.getSemanticErrors();
@@ -386,8 +387,33 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
                     if (typeError != null) {
                         valorColuna = "ERRO: " + typeError;
                     }
-                }
-                else if (t.getLiteral() != null) {
+                } else if (t.getType() == TokenType.PRINTF) {
+                    // If printf has a single simple argument (literal/number/identifier), append it to output
+                    int j = i + 1;
+                    if (j < tokens.size() && tokens.get(j).getType() == TokenType.LPAREN) {
+                        int k = j + 1;
+                        int depth = 1;
+                        java.util.List<Token> args = new java.util.ArrayList<>();
+                        while (k < tokens.size() && depth > 0) {
+                            Token tk = tokens.get(k);
+                            if (tk.getType() == TokenType.LPAREN) depth++;
+                            else if (tk.getType() == TokenType.RPAREN) depth--;
+                            if (depth > 0) args.add(tk);
+                            k++;
+                        }
+
+                        if (args.size() == 1) {
+                            Token arg = args.get(0);
+                            if (arg.getType() == TokenType.LITERAL || arg.getType() == TokenType.NUMBER_INT || arg.getType() == TokenType.NUMBER_FLOAT) {
+                                runtimeOut.append(arg.getLexeme()).append("\n");
+                            } else if (arg.getType() == TokenType.ID && semanticAnalyzer.getSymbolTable().exists(arg.getLexeme())) {
+                                SymbolInfo s = semanticAnalyzer.getSymbolTable().get(arg.getLexeme());
+                                if (s != null && s.value != null) runtimeOut.append(s.value.toString()).append("\n");
+                                else runtimeOut.append(arg.getLexeme()).append("\n");
+                            }
+                        }
+                    }
+                } else if (t.getLiteral() != null) {
                     valorColuna = t.getLiteral().toString();
                 }
 
@@ -402,11 +428,19 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
             
             if (errorCount == 0) {
                 txtOutput.setForeground(new Color(0, 150, 0));
-                txtOutput.setText("Compilação concluída com sucesso.\nNenhum erro encontrado.");
+                if (runtimeOut.length() > 0) {
+                    txtOutput.setText("Compilação concluída com sucesso.\n\nSaída:\n" + runtimeOut.toString());
+                } else {
+                    txtOutput.setText("Compilação concluída com sucesso.\nNenhum erro encontrado.");
+                }
             } else {
                 txtOutput.setForeground(Color.RED);
                 txtOutput.setText(String.format("Falha na compilação. %d erro(s) encontrado(s):\n\n", errorCount));
                 txtOutput.append(outputMsg.toString());
+                if (runtimeOut.length() > 0) {
+                    txtOutput.append("\nSaída:\n");
+                    txtOutput.append(runtimeOut.toString());
+                }
             }
 
         } catch (Exception e) {
@@ -416,21 +450,16 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     }
 
     private void acaoCompilar() {
-        String original = textArea.getText();
-        int caret = textArea.getCaretPosition();
-        String cleaned = normalizeWhitespace(original);
-        if (!cleaned.equals(original)) {
-            textArea.setText(cleaned);
-            textArea.setCaretPosition(Math.min(caret, cleaned.length()));
-        }
-
+        // Do not overwrite the editor contents when compiling — preserve user's formatting.
+        // Previously we normalized whitespace and replaced the editor text here, which
+        // could remove comments, preprocessor directives and original line breaks.
         atualizarTabelaTokens();
     }
 
     private String normalizeWhitespace(String code) {
         String s = code.replaceAll("\\s+", " ").trim();
 
-        s = s.replace("{", " { ").replace("}", " } ").replace(";", " ; ");
+        s = s.replace("{", "{ ").replace("}", "} ");
         s = s.replaceAll(" {2,}", " ").trim();
 
         java.util.List<String> tokens = new java.util.ArrayList<>();
