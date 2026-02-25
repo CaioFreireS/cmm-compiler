@@ -1,7 +1,6 @@
 package com.mycompany.cmm.compiler.view;
 
 import com.mycompany.cmm.compiler.lexer.Lexer;
-import com.mycompany.cmm.compiler.model.SemanticAnalyzer;
 import com.mycompany.cmm.compiler.model.SyntaxAnalyzer;
 import com.mycompany.cmm.compiler.model.SyntaxAnalyzer.SyntaxIssue;
 import com.mycompany.cmm.compiler.model.Token;
@@ -22,7 +21,6 @@ import org.fife.ui.rsyntaxtextarea.parser.ParserNotice;
 public class LexerParser extends AbstractParser {
 
     private final List<Token> lastTokens = new ArrayList<>();
-    private final SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer();
     private final SyntaxAnalyzer syntaxAnalyzer = new SyntaxAnalyzer();
 
     public LexerParser() {
@@ -52,41 +50,16 @@ public class LexerParser extends AbstractParser {
                 addNotice(result, doc, issue.getToken(), issue.getMessage(), level);
             }
 
-            semanticAnalyzer.analyze(lastTokens); 
-
             for (int i = 0; i < lastTokens.size(); i++) {
                 Token t = lastTokens.get(i);
 
                 if (t.getType() == TokenType.ID) {
                     boolean isDeclaration = false;
-                    if (i > 0) {
-                        TokenType prevType = lastTokens.get(i - 1).getType();
-                        if (semanticAnalyzer.isType(prevType)) {
-                            isDeclaration = true;
-                        }
-                    }
-                    
-                    if (!isDeclaration && !semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
-                        addNotice(result, doc, t, "Erro Semântico: Variável '" + t.getLexeme() + "' não declarada.", ParserNotice.Level.ERROR);
-                    }
-                }
-
-                if (t.getType() == TokenType.RETURN && i + 1 < lastTokens.size()) {
-                    Token next = lastTokens.get(i + 1);
-                    String typeError = semanticAnalyzer.checkTypeCompatibility(next);
-                    if (typeError != null) {
-                        addNotice(result, doc, next, typeError, ParserNotice.Level.ERROR);
+                    if (i > 0 && lastTokens.get(i - 1).getType() == TokenType.HASHTAG) {
+                        continue;
                     }
                 }
             }
-
-            semanticAnalyzer.validateFunctionExit();
-
-            for (String[] err : semanticAnalyzer.getSemanticErrors()) {
-                int line = Integer.parseInt(err[1]);
-                addNoticeAtLine(result, doc, line, err[0], err[2].length());
-            }
-
         } catch (Exception e) {
             e.printStackTrace();
             result.setError(e);

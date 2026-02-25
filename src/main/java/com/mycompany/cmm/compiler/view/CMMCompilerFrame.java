@@ -8,7 +8,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.mycompany.cmm.compiler.view.LexerParser;
 import com.mycompany.cmm.compiler.model.Token;
-import com.mycompany.cmm.compiler.model.SemanticAnalyzer;
 import com.mycompany.cmm.compiler.model.SymbolInfo;
 import com.mycompany.cmm.compiler.model.TokenType;
 import java.awt.BorderLayout;
@@ -38,8 +37,6 @@ import javax.swing.event.DocumentListener;
 public class CMMCompilerFrame extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(CMMCompilerFrame.class.getName());
-
-    private final SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer();
     
     private RSyntaxTextArea textArea;
     private LexerParser lexerParser;
@@ -324,8 +321,6 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
             textArea.forceReparsing(0);
             List<Token> tokens = lexerParser.getLastTokens();
 
-            semanticAnalyzer.analyze(tokens);
-
             DefaultTableModel model = (DefaultTableModel) tblTokens.getModel();
             model.setRowCount(0);
 
@@ -338,16 +333,8 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
             }
 
             StringBuilder outputMsg = new StringBuilder();
+            StringBuilder runtimeOut = new StringBuilder();
             int errorCount = 0;
-
-            List<String[]> semanticErrs = semanticAnalyzer.getSemanticErrors();
-            if (semanticErrs != null) {
-                for (String[] err : semanticErrs) {
-                    outputMsg.append("Erro Semântico [Linha ").append(err[1])
-                             .append("]: ").append(err[0]).append("\n");
-                    errorCount++;
-                }
-            }
 
             for (int i = 0; i < tokens.size(); i++) {
                 Token t = tokens.get(i);
@@ -368,26 +355,29 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
                             isDeclaration = true;
                         }
                     }
+                } else if (t.getType() == TokenType.PRINTF) {
+                    // If printf has a single simple argument (literal/number/identifier), append it to output
+                    int j = i + 1;
+                    if (j < tokens.size() && tokens.get(j).getType() == TokenType.LPAREN) {
+                        int k = j + 1;
+                        int depth = 1;
+                        java.util.List<Token> args = new java.util.ArrayList<>();
+                        while (k < tokens.size() && depth > 0) {
+                            Token tk = tokens.get(k);
+                            if (tk.getType() == TokenType.LPAREN) depth++;
+                            else if (tk.getType() == TokenType.RPAREN) depth--;
+                            if (depth > 0) args.add(tk);
+                            k++;
+                        }
 
-                    if (!isDeclaration && !semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
-                        valorColuna = "ERRO: Não declarado"; 
-                        outputMsg.append("Erro Semântico [Linha ").append(t.getLine())
-                                 .append("]: Variável '").append(t.getLexeme()).append("' não declarada.\n");
-                        errorCount++;
-                    } 
-                    else if (semanticAnalyzer.getSymbolTable().exists(t.getLexeme())) {
-                        SymbolInfo info = semanticAnalyzer.getSymbolTable().get(t.getLexeme());
-                        valorColuna = "Tipo: " + info.type;
+                        if (args.size() == 1) {
+                            Token arg = args.get(0);
+                            if (arg.getType() == TokenType.LITERAL || arg.getType() == TokenType.NUMBER_INT || arg.getType() == TokenType.NUMBER_FLOAT) {
+                                runtimeOut.append(arg.getLexeme()).append("\n");
+                            } 
+                        }
                     }
-                } 
-                else if (t.getType() == TokenType.RETURN && i + 1 < tokens.size()) {
-                    Token nextToken = tokens.get(i + 1);
-                    String typeError = semanticAnalyzer.checkTypeCompatibility(nextToken);
-                    if (typeError != null) {
-                        valorColuna = "ERRO: " + typeError;
-                    }
-                }
-                else if (t.getLiteral() != null) {
+                } else if (t.getLiteral() != null) {
                     valorColuna = t.getLiteral().toString();
                 }
 
@@ -402,11 +392,19 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
             
             if (errorCount == 0) {
                 txtOutput.setForeground(new Color(0, 150, 0));
-                txtOutput.setText("Compilação concluída com sucesso.\nNenhum erro encontrado.");
+                if (runtimeOut.length() > 0) {
+                    txtOutput.setText("Compilação concluída com sucesso.\n\nSaída:\n" + runtimeOut.toString());
+                } else {
+                    txtOutput.setText("Compilação concluída com sucesso.\nNenhum erro encontrado.");
+                }
             } else {
                 txtOutput.setForeground(Color.RED);
                 txtOutput.setText(String.format("Falha na compilação. %d erro(s) encontrado(s):\n\n", errorCount));
                 txtOutput.append(outputMsg.toString());
+                if (runtimeOut.length() > 0) {
+                    txtOutput.append("\nSaída:\n");
+                    txtOutput.append(runtimeOut.toString());
+                }
             }
 
         } catch (Exception e) {
@@ -416,21 +414,16 @@ public class CMMCompilerFrame extends javax.swing.JFrame {
     }
 
     private void acaoCompilar() {
-        String original = textArea.getText();
-        int caret = textArea.getCaretPosition();
-        String cleaned = normalizeWhitespace(original);
-        if (!cleaned.equals(original)) {
-            textArea.setText(cleaned);
-            textArea.setCaretPosition(Math.min(caret, cleaned.length()));
-        }
-
+        // Do not overwrite the editor contents when compiling — preserve user's formatting.
+        // Previously we normalized whitespace and replaced the editor text here, which
+        // could remove comments, preprocessor directives and original line breaks.
         atualizarTabelaTokens();
     }
 
     private String normalizeWhitespace(String code) {
         String s = code.replaceAll("\\s+", " ").trim();
 
-        s = s.replace("{", " { ").replace("}", " } ").replace(";", " ; ");
+        s = s.replace("{", "{ ").replace("}", "} ");
         s = s.replaceAll(" {2,}", " ").trim();
 
         java.util.List<String> tokens = new java.util.ArrayList<>();

@@ -46,24 +46,12 @@ public class Lexer {
         keywords.put("printf", TokenType.PRINTF);
         keywords.put("scanf", TokenType.SCANF);
         
-        keywords.put("AND", TokenType.AND);
-        keywords.put("OR", TokenType.OR);
+        keywords.put("and", TokenType.AND);
+        keywords.put("or", TokenType.OR);
     }
 
     public Lexer(String input) {
-        this.input = normalizeSpaces(input);
-    }
-
-    private String normalizeSpaces(String input) {
-        StringBuilder sb = new StringBuilder();
-        String[] lines = input.split("\\r?\\n");
-        for (String line : lines) {
-            String normalized = line.trim().replaceAll(" +", " ");
-            if (!normalized.isEmpty()) {
-                sb.append(normalized).append("\n");
-            }
-        }
-        return sb.toString();
+        this.input = input;
     }
 
     public Token scan() {
@@ -76,7 +64,7 @@ public class Lexer {
         char c = peek();
         startColumn = column;
 
-        if (Character.isLetter(c) || c == '_') {
+        if (isAsciiLetterOrUnderscore(c)) {
             return scanIdentifier();
         }
 
@@ -86,6 +74,10 @@ public class Lexer {
 
         if (c == '"') {
             return scanStringLiteral();
+        }
+
+        if (c == '\'') {
+            return scanCharLiteral();
         }
 
         advance();
@@ -131,7 +123,7 @@ public class Lexer {
 
     private Token scanIdentifier() {
         StringBuilder sb = new StringBuilder();
-        while (pos < input.length() && (Character.isLetterOrDigit(peek()) || peek() == '_')) {
+        while (pos < input.length() && isAsciiLetterDigitUnderscore(peek())) {
             sb.append(advance());
         }
 
@@ -144,6 +136,14 @@ public class Lexer {
         TokenType type = keywords.getOrDefault(text, TokenType.ID);
         
         return new Token(type, text, null, line, startColumn);
+    }
+
+    private boolean isAsciiLetterOrUnderscore(char c) {
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
+    }
+
+    private boolean isAsciiLetterDigitUnderscore(char c) {
+        return isAsciiLetterOrUnderscore(c) || (c >= '0' && c <= '9');
     }
 
     private Token scanNumber() {
@@ -186,6 +186,29 @@ public class Lexer {
         }
 
         advance();
+        return new Token(TokenType.LITERAL, sb.toString(), sb.toString(), line, startColumn);
+    }
+
+    private Token scanCharLiteral() {
+        advance(); // consume opening '\''
+        StringBuilder sb = new StringBuilder();
+
+        while (pos < input.length() && peek() != '\'') {
+            if (peek() == '\n') {
+                line++; column = 1;
+            }
+            char ch = advance();
+            if (!isAsciiLetterOrUnderscore(ch) && !(ch >= '0' && ch <= '9')) {
+                return new Token(TokenType.ERROR, String.valueOf(ch), "Literal inválido dentro de apóstrofos", line, startColumn);
+            }
+            sb.append(ch);
+        }
+
+        if (pos >= input.length()) {
+            return new Token(TokenType.ERROR, sb.toString(), "Literal não fechado", line, startColumn);
+        }
+
+        advance(); // consume closing '\''
         return new Token(TokenType.LITERAL, sb.toString(), sb.toString(), line, startColumn);
     }
 
