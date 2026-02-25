@@ -42,8 +42,4 @@ public class SymbolTable {
         if (info == null && parent != null) return parent.get(name);
         return info;
     }
-
-    public boolean exists(String name) {
-        return get(name) != null;
-    }
 }
